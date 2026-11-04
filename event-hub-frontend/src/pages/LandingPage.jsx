@@ -117,7 +117,7 @@ export default function LandingPage() {
       </section>
       {/* FEATURED EVENTS SLIDER */}
       <section className="relative py-24 bg-bg dark:bg-bg-dark">
-        <h2 className="text-center text-3xl md:text-4xl font-bold mb-12">
+        <h2 className="font-display text-center text-3xl md:text-4xl font-bold tracking-[-0.03em] leading-[1.1] mb-12">
           Featured Events
         </h2>
 
@@ -127,15 +127,18 @@ export default function LandingPage() {
       {/* 🌍 GLOBE SECTION */}
       <GlobeSection />
 
-      <section className="relative py-20 bg-bg dark:bg-bg-dark">
-        <h2 className="text-center text-3xl md:text-4xl font-bold mb-10">
-          What We Host
-        </h2>
+      {/* WHAT WE HOST — equal fluid padding above the heading and below the
+          released stack; overflow-x-clip (not hidden) so card shadows show */}
+      <section className="relative isolate overflow-x-clip bg-bg dark:bg-bg-dark py-[clamp(4rem,10vh,7rem)]">
+        <div aria-hidden="true" className="formats-backdrop" />
 
-        <div className="relative overflow-hidden">
-          <EventScrollStack useWindowScroll />
+        <div className="shell">
+          <h2 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.03em] leading-[1.1] mb-[clamp(2rem,5vh,3.5rem)]">
+            What We Host
+          </h2>
         </div>
 
+        <EventScrollStack useWindowScroll />
       </section>
 
 

@@ -8,7 +8,7 @@ export default function GlobeSection() {
     <section className="relative py-20 bg-bg dark:bg-bg-dark overflow-hidden">
       <div className="max-w-6xl mx-auto px-6 flex flex-col items-center text-center gap-14">
 
-        <h2 className="text-3xl md:text-4xl font-bold text-text dark:text-text-dark">
+        <h2 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.03em] leading-[1.1] text-text dark:text-text-dark">
           A Global  Community
         </h2>
 

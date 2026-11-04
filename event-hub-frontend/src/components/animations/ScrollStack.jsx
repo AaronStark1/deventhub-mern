@@ -1,13 +1,18 @@
 import { useLayoutEffect, useRef, useCallback } from 'react';
 import Lenis from 'lenis';
 
-export const ScrollStackItem = ({ children, itemClassName = '' }) => (
+// Structural classes only — padding, radius, shadow and size come from the
+// caller via `itemClassName`, so they can't fight a caller's own utilities.
+// Extra props (data-*, pointer handlers) land on the card element.
+export const ScrollStackItem = ({ children, itemClassName = '', style, ...rest }) => (
   <div
-    className={`scroll-stack-card relative w-full min-h-[20rem] md:h-80 my-8 p-6 sm:p-8 md:p-12 rounded-[28px] md:rounded-[40px] shadow-[0_0_30px_rgba(0,0,0,0.1)] box-border origin-top will-change-transform ${itemClassName}`.trim()}
+    className={`scroll-stack-card relative w-full box-border origin-top will-change-transform ${itemClassName}`.trim()}
     style={{
       backfaceVisibility: 'hidden',
-      transformStyle: 'preserve-3d'
+      transformStyle: 'preserve-3d',
+      ...style
     }}
+    {...rest}
   >
     {children}
   </div>
@@ -38,6 +43,7 @@ const ScrollStack = ({
   rotationAmount = 0,
   blurAmount = 0,
   useWindowScroll = false,
+  innerClassName = 'px-4 sm:px-10 lg:px-20',
   onStackComplete
 }) => {
   const scrollerRef = useRef(null);
@@ -45,7 +51,7 @@ const ScrollStack = ({
   const animationFrameRef = useRef(null);
   const lenisRef = useRef(null);
   const cardsRef = useRef([]);
-  const layoutRef = useRef({ cardTops: [], endTop: 0, viewportHeight: 0 });
+  const layoutRef = useRef({ cardTops: [], viewportHeight: 0, maxScroll: Infinity });
   const lastTransformsRef = useRef(new Map());
   const isUpdatingRef = useRef(false);
 
@@ -75,12 +81,16 @@ const ScrollStack = ({
     if (!scroller) return;
 
     const stopAt = useWindowScroll ? null : scroller;
-    const endElement = scroller.querySelector('.scroll-stack-end');
+
+    const viewportHeight = useWindowScroll ? window.innerHeight : scroller.clientHeight;
+    const scrollHeight = useWindowScroll
+      ? document.documentElement.scrollHeight
+      : scroller.scrollHeight;
 
     layoutRef.current = {
       cardTops: cardsRef.current.map(card => layoutTop(card, stopAt)),
-      endTop: endElement ? layoutTop(endElement, stopAt) : 0,
-      viewportHeight: useWindowScroll ? window.innerHeight : scroller.clientHeight
+      viewportHeight,
+      maxScroll: scrollHeight - viewportHeight
     };
   }, [useWindowScroll]);
 
@@ -91,10 +101,27 @@ const ScrollStack = ({
     isUpdatingRef.current = true;
 
     const scrollTop = getScrollTop();
-    const { cardTops, endTop, viewportHeight: containerHeight } = layoutRef.current;
-    const stackPositionPx = parsePercentage(stackPosition, containerHeight);
+    const { cardTops, viewportHeight: containerHeight, maxScroll } = layoutRef.current;
+    const lastIndex = cards.length - 1;
+    // On viewports tall relative to what follows the stack, scrolling bottoms
+    // out before the last card reaches its slot and the stack never closes.
+    // Lower the slot just enough that the last card lands at max scroll
+    // (capped, so a very short page doesn't pin cards near the bottom).
+    const stackPositionPx = Math.min(
+      Math.max(
+        parsePercentage(stackPosition, containerHeight),
+        cardTops[lastIndex] - itemStackDistance * lastIndex - maxScroll
+      ),
+      containerHeight * 0.45
+    );
     const scaleEndPositionPx = parsePercentage(scaleEndPosition, containerHeight);
-    const pinEnd = endTop - containerHeight / 2;
+    // Release the stack the moment the last card lands in its slot. The last
+    // card then never moves off its layout position, so the stack's bottom
+    // edge is exactly where layout puts it and the space after it is just
+    // the container's padding. (Pinning past that point would need a spacer,
+    // which turns into dead space on viewports too tall for the last card to
+    // ever reach its slot.)
+    const pinEnd = cardTops[lastIndex] - stackPositionPx - itemStackDistance * lastIndex;
 
     // Which card is currently on top of the stack — only needed for blur.
     let topCardIndex = 0;
@@ -151,11 +178,12 @@ const ScrollStack = ({
       }
 
       if (i === cards.length - 1) {
-        const isInView = scrollTop >= pinStart && scrollTop <= pinEnd;
-        if (isInView && !stackCompletedRef.current) {
+        // Complete once the last card has landed (it releases immediately).
+        const isComplete = scrollTop >= pinStart;
+        if (isComplete && !stackCompletedRef.current) {
           stackCompletedRef.current = true;
           onStackComplete?.();
-        } else if (!isInView && stackCompletedRef.current) {
+        } else if (!isComplete && stackCompletedRef.current) {
           stackCompletedRef.current = false;
         }
       }
@@ -187,7 +215,8 @@ const ScrollStack = ({
     const options = {
       duration: 1.2,
       easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
+      // Eased wheel scrolling is motion the user didn't ask for.
+      smoothWheel: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
       touchMultiplier: 2,
       infinite: false,
       wheelMultiplier: 1,
@@ -250,6 +279,11 @@ const ScrollStack = ({
     const resizeObserver = new ResizeObserver(relayout);
     resizeObserver.observe(scroller);
     cards.forEach(card => resizeObserver.observe(card));
+    // Card tops are document offsets in window mode, so content *above* the
+    // stack changing height (web fonts re-wrapping text, images loading)
+    // moves them without resizing anything observed above. Any such shift
+    // also resizes <body>.
+    if (useWindowScroll) resizeObserver.observe(document.body);
     window.addEventListener('resize', relayout);
 
     return () => {
@@ -293,10 +327,8 @@ const ScrollStack = ({
 
   return (
     <div className={containerClassName} ref={scrollerRef} style={containerStyles}>
-      <div className="scroll-stack-inner pt-[20vh] px-4 sm:px-10 lg:px-20 pb-[50vh] min-h-screen">
+      <div className={`scroll-stack-inner ${innerClassName}`.trim()}>
         {children}
-        {/* Spacer so the last pin can release cleanly */}
-        <div className="scroll-stack-end w-full h-px" />
       </div>
     </div>
   );
