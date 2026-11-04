@@ -1,25 +1,24 @@
 const jwt = require("jsonwebtoken");
 
+// Verifies the Bearer token and exposes the caller as req.user = { email, role }.
 const jwtMiddleware = (req, res, next) => {
-  console.log("Inside JWT Middleware");
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  if (!token) {
+    return res.status(401).json("Authentication required");
+  }
 
   try {
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : authHeader;
-
-    const jwtKey = process.env.JWT_KEY;
-
-    const decoded = jwt.verify(token, jwtKey);
-
-    // Attach logged-in user email
-    req.payload = decoded.email;
-    req.role = decoded.role;
-
+    const { email, role } = jwt.verify(token, process.env.JWT_KEY);
+    req.user = { email, role };
     next();
   } catch (err) {
-    return res.status(401).json("Authorization Error");
+    const message =
+      err.name === "TokenExpiredError"
+        ? "Session expired, please log in again"
+        : "Invalid token";
+    return res.status(401).json(message);
   }
 };
 

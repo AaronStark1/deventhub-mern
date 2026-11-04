@@ -1,9 +1,8 @@
-import { useContext } from "react";
-import { ThemeContext } from "../context/ThemeContext";
+import { useTheme } from "../hooks/useTheme";
 import { MdLightMode, MdDarkMode } from "react-icons/md";
 
 export default function ThemeToggle() {
-  const { dark, setDark } = useContext(ThemeContext);
+  const { dark, setDark } = useTheme();
 
   return (
     <button

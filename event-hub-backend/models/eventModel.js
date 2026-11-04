@@ -27,7 +27,8 @@ const eventSchema = new mongoose.Schema(
       default: 0,
     },
 
-    capacity: Number,
+    // Absent/null means unlimited; otherwise a whole number of seats.
+    capacity: { type: Number, min: 1 },
 
     participants: {
       type: [String],

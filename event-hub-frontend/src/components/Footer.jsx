@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
 
           {/* LEFT — Logo + Tagline */}
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
             <Link to="/">
               <img
                 src="/logo.svg"
@@ -18,13 +18,13 @@ export default function Footer() {
               />
             </Link>
 
-            <p className="text-lg font-medium text-muted dark:text-muted-dark">
+            <p className="text-base sm:text-lg font-medium text-muted dark:text-muted-dark">
               Connecting developers through meaningful events.
             </p>
           </div>
 
           {/* CENTER — Links */}
-          <div className="flex gap-10 text-lg font-semibold text-muted dark:text-muted-dark">
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-10 text-base sm:text-lg font-semibold text-muted dark:text-muted-dark">
             <Link to="/events" className="hover:text-primary transition">
               Events
             </Link>

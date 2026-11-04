@@ -1,10 +1,7 @@
-export default {
+// CommonJS (the package is "type": "module") so `require` works here.
+module.exports = {
   darkMode: "class",
-  content: [
-    "./index.html",
-    "./src/**/*.{js,jsx}",
-    "./node_modules/flowbite-react/**/*.js",
-  ],
+  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -26,6 +23,5 @@ export default {
       },
     },
   },
-  plugins: [
-    require('lightswind/plugin'),],
+  plugins: [require("lightswind/plugin")],
 };

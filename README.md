@@ -76,6 +76,45 @@ Built using the **MERN stack** with a modern responsive UI.
 
 ---
 
+# 🏃 Running Locally
+
+You need Node.js 20+ and a MongoDB instance (local or Atlas).
+
+```bash
+# Backend
+cd event-hub-backend
+cp .env.example .env        # MONGODB_URI, JWT_KEY, GOOGLE_CLIENT_ID, STRIPE_SECRET_KEY, CLIENT_URL
+npm install
+npm run dev                 # http://localhost:3000
+
+# Frontend (second terminal)
+cd event-hub-frontend
+cp .env.example .env        # VITE_API_URL=http://localhost:3000, VITE_GOOGLE_CLIENT_ID
+npm install
+npm run dev                 # http://localhost:5173
+```
+
+---
+
+# 🧪 Tests
+
+```bash
+# Backend — API tests against an in-memory MongoDB (no database setup needed)
+cd event-hub-backend && npm test
+
+# Frontend — unit tests for session handling, the API client and route guards
+cd event-hub-frontend && npm test
+```
+
+The backend suite covers password hashing, login, token validation, host-only and
+owner-only guards, the public event shape (no attendee emails), registration
+idempotency and capacity under concurrent requests.
+
+> **Note:** payments are intentionally demo-grade. Registration is confirmed when
+> the success page loads; there is no Stripe webhook verification.
+
+---
+
 # ✨ Core Features
 
 ## 👤 User Features
@@ -287,11 +326,14 @@ DEVentHub/
 │   └── context/
 │
 ├── backend/
+│   ├── app.js          (Express app)
+│   ├── index.js        (DB connect + listen)
 │   ├── controllers/
 │   ├── models/
-│   ├── routes/
+│   ├── router/
 │   ├── middleware/
-│   └── config/
+│   ├── config/
+│   └── test/
 │
 └── README.md
 ```

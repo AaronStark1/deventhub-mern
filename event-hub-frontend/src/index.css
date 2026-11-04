@@ -1,6 +1,12 @@
-@import "flowbite";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
+/* Page background as a CSS variable, for components that need it in plain
+   CSS (LogoLoop's fade edges). Mirrors `bg` / `bg-dark` in tailwind.config. */
+:root {
+  --bg: #e6f0ee;
+}
+.dark {
+  --bg: #10242b;
+}

@@ -10,20 +10,10 @@ export default function EventRegistration() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  if (user?.role === "host") {
-    navigate("/host/dashboard");
-  }
-}, []);
-
-  useEffect(() => {
     const fetchEvent = async () => {
       try {
         const res = await getSingleEventAPI(id);
-        if (res.status === 200) {
-          setEvent(res.data);
-        }
+        setEvent(res.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -34,17 +24,7 @@ export default function EventRegistration() {
     fetchEvent();
   }, [id]);
 
-  const handleProceed = () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      alert("Please login to continue");
-      navigate("/login");
-      return;
-    }
-
-    navigate(`/events/${id}/checkout`);
-  };
+  const handleProceed = () => navigate(`/events/${id}/checkout`);
 
   if (loading) {
     return (
@@ -64,10 +44,8 @@ export default function EventRegistration() {
     );
   }
 
-  const seatsLeft =
-    event.capacity
-      ? event.capacity - event.participants.length
-      : "Unlimited";
+  // The API sends null when the event has no capacity limit.
+  const seatsLeft = event.seatsLeft ?? "Unlimited";
 
   return (
     <div className="min-h-screen bg-bg dark:bg-bg-dark px-6 py-16 transition-colors">

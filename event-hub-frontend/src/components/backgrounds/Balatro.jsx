@@ -1,5 +1,6 @@
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
 import { useEffect, useRef } from 'react';
+import { runWhileVisible } from '../../lib/visibility';
 
 function hexToVec4(hex) {
   let hexStr = hex.replace('#', '');
@@ -57,26 +58,26 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
     float pixel_size = length(screenSize.xy) / uPixelFilter;
     vec2 uv = (floor(screen_coords.xy * (1.0 / pixel_size)) * pixel_size - 0.5 * screenSize.xy) / length(screenSize.xy) - uOffset;
     float uv_len = length(uv);
-    
+
     float speed = (uSpinRotation * uSpinEase * 0.2);
     if(uIsRotate){
        speed = iTime * speed;
     }
     speed += 302.2;
-    
+
     float mouseInfluence = (uMouse.x * 2.0 - 1.0);
     speed += mouseInfluence * 0.1;
-    
+
     float new_pixel_angle = atan(uv.y, uv.x) + speed - uSpinEase * 20.0 * (uSpinAmount * uv_len + (1.0 - uSpinAmount));
     vec2 mid = (screenSize.xy / length(screenSize.xy)) / 2.0;
     uv = (vec2(uv_len * cos(new_pixel_angle) + mid.x, uv_len * sin(new_pixel_angle) + mid.y) - mid);
-    
+
     uv *= 30.0;
     float baseSpeed = iTime * uSpinSpeed;
     speed = baseSpeed + mouseInfluence * 2.0;
-    
+
     vec2 uv2 = vec2(uv.x + uv.y);
-    
+
     for(int i = 0; i < 5; i++) {
         uv2 += sin(max(uv.x, uv.y)) + uv;
         uv += 0.5 * vec2(
@@ -85,14 +86,14 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
         );
         uv -= cos(uv.x + uv.y) - sin(uv.x * 0.711 - uv.y);
     }
-    
+
     float contrast_mod = (0.25 * uContrast + 0.5 * uSpinAmount + 1.2);
     float paint_res = min(2.0, max(0.0, length(uv) * 0.035 * contrast_mod));
     float c1p = max(0.0, 1.0 - contrast_mod * abs(1.0 - paint_res));
     float c2p = max(0.0, 1.0 - contrast_mod * abs(paint_res));
     float c3p = 1.0 - min(1.0, c1p + c2p);
     float light = (uLighting - 0.2) * max(c1p * 5.0 - 4.0, 0.0) + uLighting * max(c2p * 5.0 - 4.0, 0.0);
-    
+
     return (0.3 / uContrast) * uColor1 + (1.0 - 0.3 / uContrast) * (uColor1 * c1p + uColor2 * c2p + vec4(c3p * uColor3.rgb, c3p * uColor1.a)) + light;
 }
 
@@ -102,10 +103,14 @@ void main() {
 }
 `;
 
+// A stable default: an inline `[0, 0]` literal would be a new array on every
+// render and re-create the WebGL context each time.
+const DEFAULT_OFFSET = [0.0, 0.0];
+
 export default function Balatro({
   spinRotation = -2.0,
   spinSpeed = 7.0,
-  offset = [0.0, 0.0],
+  offset = DEFAULT_OFFSET,
   color1 = '#DE443B',
   color2 = '#006BB4',
   color3 = '#162325',
@@ -163,15 +168,15 @@ export default function Balatro({
     });
 
     const mesh = new Mesh(gl, { geometry, program });
-    let animationFrameId;
-
-    function update(time) {
-      animationFrameId = requestAnimationFrame(update);
-      program.uniforms.iTime.value = time * 0.001;
-      renderer.render({ scene: mesh });
-    }
-    animationFrameId = requestAnimationFrame(update);
     container.appendChild(gl.canvas);
+
+    // Paint one frame immediately so there's no blank canvas before the
+    // visibility observer fires; after that the loop only runs on screen.
+    renderer.render({ scene: mesh });
+    const stopLoop = runWhileVisible(container, elapsed => {
+      program.uniforms.iTime.value = elapsed * 0.001;
+      renderer.render({ scene: mesh });
+    });
 
     function handleMouseMove(e) {
       if (!mouseInteraction) return;
@@ -183,7 +188,7 @@ export default function Balatro({
     container.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stopLoop();
       window.removeEventListener('resize', resize);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeChild(gl.canvas);

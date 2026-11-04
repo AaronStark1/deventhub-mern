@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { motion, useMotionValue, useAnimationFrame, useTransform } from 'motion/react';
+import { motion, useMotionValue, useAnimationFrame, useTransform, useInView } from 'motion/react';
 
 const ShinyText = ({
   text,
@@ -19,12 +19,16 @@ const ShinyText = ({
   const elapsedRef = useRef(0);
   const lastTimeRef = useRef(null);
   const directionRef = useRef(direction === 'left' ? 1 : -1);
+  // The shine repaints a large text node every frame; skip it while the
+  // heading is scrolled out of view.
+  const containerRef = useRef(null);
+  const inView = useInView(containerRef, { margin: '200px' });
 
   const animationDuration = speed * 1000;
   const delayDuration = delay * 1000;
 
   useAnimationFrame(time => {
-    if (disabled || isPaused) {
+    if (disabled || isPaused || !inView) {
       lastTimeRef.current = null;
       return;
     }
@@ -104,6 +108,7 @@ const ShinyText = ({
 
   return (
     <motion.span
+      ref={containerRef}
       className={`inline-block ${className}`}
       style={{ ...gradientStyle, backgroundPosition }}
       onMouseEnter={handleMouseEnter}

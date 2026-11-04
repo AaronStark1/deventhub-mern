@@ -1,26 +1,29 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ThemeContext } from "../hooks/useTheme";
 
-export const ThemeContext = createContext();
+// index.html applies this same key before first paint; here we only keep
+// the class and storage in sync with toggles.
+const readStoredTheme = () => {
+  try {
+    return localStorage.getItem("theme") === "dark";
+  } catch {
+    return false;
+  }
+};
 
 export function ThemeProvider({ children }) {
-  const [dark, setDark] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
+  const [dark, setDark] = useState(readStoredTheme);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (dark) {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
+    document.documentElement.classList.toggle("dark", dark);
+    try {
+      localStorage.setItem("theme", dark ? "dark" : "light");
+    } catch {
+      // storage unavailable — theme still applies for this visit
     }
   }, [dark]);
 
-  return (
-    <ThemeContext.Provider value={{ dark, setDark }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  const value = useMemo(() => ({ dark, setDark }), [dark]);
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

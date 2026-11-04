@@ -50,29 +50,32 @@ const EventScrollStack = ({ useWindowScroll = true }) => {
   );
 };
 
+// Side-by-side on md+ (unchanged); stacked and centred on phones.
 const CardContent = ({ title, description, image }) => {
   return (
-    <div className="flex h-full items-center justify-between gap-12">
+    <div className="flex h-full flex-col md:flex-row items-center justify-between gap-6 md:gap-12 text-center md:text-left">
 
       {/* TEXT */}
       <div className="max-w-xl">
-        <h2 className="text-5xl font-bold mb-6 tracking-tight">
+        <h2 className="text-3xl md:text-5xl font-bold mb-3 md:mb-6 tracking-tight">
           {title}
         </h2>
 
-        <p className="text-xl opacity-90 leading-relaxed">
+        <p className="text-base md:text-xl opacity-90 leading-relaxed">
           {description}
         </p>
       </div>
 
       {/* RECTANGULAR IMAGE */}
-      <div className="relative">
+      <div className="relative w-full md:w-auto flex justify-center">
         <img
           src={image}
           alt={title}
+          loading="lazy"
+          decoding="async"
           className="
-            w-[500px]
-            h-[260px]
+            w-full max-w-[500px]
+            h-[180px] md:h-[260px]
             object-cover
             rounded-2xl
             shadow-2xl

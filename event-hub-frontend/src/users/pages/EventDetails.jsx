@@ -1,24 +1,26 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getSingleEventAPI } from "../../services/allAPIs";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isHost } = useAuth(); // hosts can't register for events
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isHost = user?.role === "host"; //to block regster button for host
-
   useEffect(() => {
     const fetchEvent = async () => {
-      const result = await getSingleEventAPI(id);
-      if (result.status === 200) {
+      try {
+        const result = await getSingleEventAPI(id);
         setEvent(result.data);
+      } catch {
+        setEvent(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchEvent();
   }, [id]);
