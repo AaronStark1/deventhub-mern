@@ -29,6 +29,7 @@
     "capture": "node scripts/capture.mjs",
     "dev": "remotion studio",
     "render": "remotion render DevEventHubShowcase out/deventhub-showcase.mp4",
+    "readme:media": "node scripts/readme-media.mjs",
     "still": "remotion still DevEventHubShowcase",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
