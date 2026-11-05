@@ -1,0 +1,22 @@
+{
+  "banner": ["banner-light", "banner-dark"],
+  "shots": [
+    { "key": "shot-landing", "eyebrow": "01 // Home", "title": "Landing", "access": "Public", "url": "/", "layers": ["nav", "hero-solid"] },
+    { "key": "shot-events", "eyebrow": "02 // Events", "title": "Browse and filter", "access": "Public", "url": "/events", "layers": ["events"] },
+    { "key": "shot-event-details", "eyebrow": "03 // Event", "title": "Event details", "access": "Public", "url": "/events/695df3053fc543986581f17f", "layers": ["event-details"] },
+    { "key": "shot-dashboard", "eyebrow": "04 // Dashboard", "title": "Your events", "access": "User", "url": "/dashboard", "layers": ["dashboard"] },
+    { "key": "shot-ticket", "eyebrow": "05 // Ticket", "title": "Ticket, as a PDF", "access": "User", "url": "/ticket/6984d3c49fd41de8eba92bee", "layers": ["ticket"] },
+    { "key": "shot-host-dashboard", "eyebrow": "06 // Host", "title": "Host dashboard", "access": "Host", "url": "/host/dashboard", "layers": ["host-dashboard"] },
+    { "key": "shot-create-event", "eyebrow": "07 // Host", "title": "Create an event", "access": "Host", "url": "/host/events/create", "layers": ["create-event"] },
+    { "key": "shot-login", "eyebrow": "08 // Auth", "title": "Sign in", "access": "Public", "url": "/login", "layers": ["login"] },
+    { "key": "shot-dark", "eyebrow": "09 // Theme", "title": "Dark theme", "access": "Public", "url": "/events", "layers": ["events-dark"] }
+  ],
+  "acts": [
+    { "key": "act-1-brand", "frame": 300 },
+    { "key": "act-2-platform", "frame": 730 },
+    { "key": "act-3-formats", "frame": 1840 },
+    { "key": "act-4-interaction", "frame": 2360 },
+    { "key": "act-5-responsive", "frame": 2975 },
+    { "key": "act-6-footer", "frame": 3410 }
+  ]
+}

@@ -1,16 +1,19 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { homeFor } from "../lib/routes";
 
 export default function ProtectedRoute({ children, allowedRole }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user } = useAuth();
+  const location = useLocation();
 
-  // not logged in
+  // Not logged in: remember where they were going so login can send them back.
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // role mismatch
+  // Wrong role: send them to their own home rather than a dead end.
   if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={homeFor(user.role)} replace />;
   }
 
   return children;

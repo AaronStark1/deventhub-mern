@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import {
   getSingleEventAPI,
   createCheckoutSessionAPI,
-  confirmRegistrationAPI,
 } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
 
 export default function EventCheckout() {
   const navigate = useNavigate();
@@ -14,22 +14,12 @@ export default function EventCheckout() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (user?.role === "host") {
-      navigate("/host/dashboard");
-    }
-  }, []);
-
   // FETCH EVENT 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         const res = await getSingleEventAPI(id);
-        if (res.status === 200) {
-          setEvent(res.data);
-        }
+        setEvent(res.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -42,41 +32,22 @@ export default function EventCheckout() {
 
   // HANDLE PAYMENT
   const handleCheckout = async () => {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    alert("Please login to continue");
-    navigate("/login");
-    return;
-  }
-
-  try {
-    setProcessing(true);
-
-    // ✅ FREE EVENT → directly confirm registration
+    // FREE EVENT → the success page confirms the registration
     if (event.priceType === "free") {
-      const res = await confirmRegistrationAPI(id, token);
-
-      if (res.status === 200) {
-        navigate(`/payment-success?event=${id}`);
-      } else {
-        alert(res.response?.data || "Registration failed");
-      }
-
-      return; // stop further execution
+      navigate(`/payment-success?event=${id}`);
+      return;
     }
 
-    // 💳 PAID EVENT → Stripe Checkout
-    const res = await createCheckoutSessionAPI(id, token);
-    window.location.href = res.data.url;
-
-  } catch (err) {
-    console.error("Checkout error:", err);
-    alert("Unable to start checkout");
-  } finally {
-    setProcessing(false);
-  }
-};
+    // PAID EVENT → Stripe Checkout (demo only)
+    try {
+      setProcessing(true);
+      const res = await createCheckoutSessionAPI(id);
+      window.location.href = res.data.url;
+    } catch (err) {
+      alert(getErrorMessage(err, "Unable to start checkout"));
+      setProcessing(false);
+    }
+  };
 
 
   // UI STATES 

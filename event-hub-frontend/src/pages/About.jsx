@@ -82,7 +82,7 @@ export default function About() {
 
         {/* HERO */}
         <section className="text-center space-y-6">
-          <h1 className="text-5xl font-bold text-text dark:text-text-dark">
+          <h1 className="text-4xl md:text-5xl font-bold text-text dark:text-text-dark">
             About DEVentHub
           </h1>
           <p className="text-lg text-muted dark:text-muted-dark max-w-3xl mx-auto">

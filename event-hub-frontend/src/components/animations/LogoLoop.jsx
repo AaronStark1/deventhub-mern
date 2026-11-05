@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
+import { watchVisibility } from '../../lib/visibility';
 
 const ANIMATION_CONFIG = {
   SMOOTH_TAU: 0.25,
@@ -128,14 +129,26 @@ const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHover
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
-
-    return () => {
+    const stop = () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
       lastTimestampRef.current = null;
+    };
+
+    const start = () => {
+      if (rafRef.current !== null) return;
+      lastTimestampRef.current = null;
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    // Only scroll the marquee while it's on screen.
+    const unwatch = watchVisibility(track, visible => (visible ? start() : stop()));
+
+    return () => {
+      unwatch();
+      stop();
     };
   }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef]);
 };
@@ -213,9 +226,17 @@ export const LogoLoop = memo(
       }
     }, [isVertical]);
 
-    useResizeObserver(updateDimensions, [containerRef, seqRef], [logos, gap, logoHeight, isVertical]);
+    // Stable arrays: inline literals would be new on every render and make
+    // the hooks below tear down and re-create their observers each time.
+    const observedElements = useMemo(() => [containerRef, seqRef], []);
+    const dimensionDeps = useMemo(
+      () => [logos, gap, logoHeight, isVertical],
+      [logos, gap, logoHeight, isVertical]
+    );
 
-    useImageLoader(seqRef, updateDimensions, [logos, gap, logoHeight, isVertical]);
+    useResizeObserver(updateDimensions, observedElements, dimensionDeps);
+
+    useImageLoader(seqRef, updateDimensions, dimensionDeps);
 
     useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical);
 

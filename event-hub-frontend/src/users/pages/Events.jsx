@@ -3,11 +3,13 @@ import EventCard from "../components/events/EventCard";
 import EventFilters from "../components/events/EventFilters";
 import EventPagination from "../components/events/EventPagination";
 import { getAllEventsAPI } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
 
 export default function Events() {
   const EVENTS_PER_PAGE = 3;
 
   const [events, setEvents] = useState([]);
+  const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
@@ -15,9 +17,11 @@ export default function Events() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const result = await getAllEventsAPI();
-      if (result.status === 200) {
+      try {
+        const result = await getAllEventsAPI();
         setEvents(result.data);
+      } catch (err) {
+        setError(getErrorMessage(err, "Unable to load events"));
       }
     };
     fetchEvents();
@@ -40,10 +44,11 @@ export default function Events() {
     return matchesSearch && matchesType && matchesMode;
   });
 
-  // RESET PAGE ON FILTER CHANGE
-  useEffect(() => {
+  // Any filter change starts again from page 1.
+  const withPageReset = (setter) => (value) => {
+    setter(value);
     setCurrentPage(1);
-  }, [search, type, mode]);
+  };
 
   // PAGINATION
   const totalPages = Math.ceil(filteredEvents.length / EVENTS_PER_PAGE);
@@ -69,15 +74,17 @@ export default function Events() {
       {/* FILTERS */}
       <EventFilters
         search={search}
-        setSearch={setSearch}
+        setSearch={withPageReset(setSearch)}
         type={type}
-        setType={setType}
+        setType={withPageReset(setType)}
         mode={mode}
-        setMode={setMode}
+        setMode={withPageReset(setMode)}
       />
 
       {/* EVENTS GRID */}
-      {paginatedEvents.length === 0 ? (
+      {error ? (
+        <p className="text-red-500">{error}</p>
+      ) : paginatedEvents.length === 0 ? (
         <p className="text-muted dark:text-muted-dark">
           No events found.
         </p>

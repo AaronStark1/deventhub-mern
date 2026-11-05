@@ -1,0 +1,7 @@
+# Agent skills installed locally with `npx skills add remotion-dev/skills`.
+# They're third-party and reinstallable, so they stay out of the repo.
+.agents/
+skills-lock.json
+
+# OS clutter
+.DS_Store

@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 
 export default function EventCard({ event }) {
-    const navigate=useNavigate()
+  const navigate = useNavigate();
+
   return (
     <div
       className="
@@ -13,12 +14,14 @@ export default function EventCard({ event }) {
         flex flex-col
       "
     >
-      
+
       <div className="relative w-full aspect-[3/4] bg-black/10">
         {event.poster ? (
           <img
             src={event.poster}
             alt={event.title}
+            loading="lazy"
+            decoding="async"
             className="
               w-full h-full object-cover
               transition-transform duration-300
@@ -54,14 +57,15 @@ export default function EventCard({ event }) {
 
       {/* CONTENT */}
       <div className="p-6 flex flex-col flex-1">
-        
+
         <h3 className="text-xl font-semibold mb-2">
           {event.title}
         </h3>
 
         {/* META */}
         <p className="text-sm text-muted dark:text-muted-dark mb-4">
-          📍 {event.location} · 🗓 {event.date}
+          {event.isOnline ? "🌐 Online" : `📍 ${event.location}`} · 🗓{" "}
+          {new Date(event.date).toDateString()}
         </p>
 
         {/* DESCRIPTION */}
@@ -71,8 +75,7 @@ export default function EventCard({ event }) {
 
         {/* ACTION */}
         <button
-        onClick={() => navigate(`/events/${event._id}`)}
-
+          onClick={() => navigate(`/events/${event._id}`)}
           className="
             w-full py-2 rounded-lg
             bg-primary text-white font-semibold

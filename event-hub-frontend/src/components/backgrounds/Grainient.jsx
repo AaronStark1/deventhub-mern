@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
+import { runWhileVisible } from '../../lib/visibility';
 
 const hexToRgb = hex => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -41,8 +42,8 @@ uniform vec3 uColor2;
 uniform vec3 uColor3;
 out vec4 fragColor;
 #define S(a,b,t) smoothstep(a,b,t)
-mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);} 
-vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);} 
+mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);}
+vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);float n=mix(mix(dot(-1.0+2.0*hash(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(-1.0+2.0*hash(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),mix(dot(-1.0+2.0*hash(i+vec2(0.0,1.0)),f-vec2(0.0,1.0)),dot(-1.0+2.0*hash(i+vec2(1.0,1.0)),f-vec2(1.0,1.0)),u.x),u.y);return 0.5+0.5*n;}
 void mainImage(out vec4 o, vec2 C){
   float t=iTime*uTimeSpeed;
@@ -79,7 +80,7 @@ void mainImage(out vec4 o, vec2 C){
   vec3 col=mix(layer1,layer2,S(v0,v1,tuv.y));
 
   vec2 grainUv=uv*max(uGrainScale,0.001);
-  if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);} 
+  if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);}
   float grain=fract(sin(dot(grainUv,vec2(12.9898,78.233)))*43758.5453);
   col+=(grain-0.5)*uGrainAmount;
 
@@ -128,11 +129,14 @@ const Grainient = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // A soft, full-screen gradient doesn't need full retina resolution, and
+    // the auth card's backdrop-blur has to re-blur every frame of it — so
+    // 1.5x instead of 2x is ~44% fewer pixels per frame with no visible loss.
     const renderer = new Renderer({
       webgl: 2,
       alpha: true,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
+      dpr: Math.min(window.devicePixelRatio || 1, 1.5)
     });
 
     const gl = renderer.gl;
@@ -191,23 +195,22 @@ const Grainient = ({
     ro.observe(container);
     setSize();
 
-    let raf = 0;
-    const t0 = performance.now();
-    const loop = t => {
-      program.uniforms.iTime.value = (t - t0) * 0.001;
+    // First frame right away; after that only while on screen.
+    renderer.render({ scene: mesh });
+    const stopLoop = runWhileVisible(container, elapsed => {
+      program.uniforms.iTime.value = elapsed * 0.001;
       renderer.render({ scene: mesh });
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
+    });
 
     return () => {
-      cancelAnimationFrame(raf);
+      stopLoop();
       ro.disconnect();
       try {
         container.removeChild(canvas);
       } catch {
         // Ignore
       }
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [
     timeSpeed,

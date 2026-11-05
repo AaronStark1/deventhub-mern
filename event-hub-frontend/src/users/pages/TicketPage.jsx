@@ -1,33 +1,49 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getSingleEventAPI } from "../../services/allAPIs";
+import { Link, useParams } from "react-router-dom";
+import { getMyTicketAPI } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
+import { useAuth } from "../../hooks/useAuth";
 import TicketCard from "../components/events/TicketCard";
 
 export default function TicketPage() {
   const { id } = useParams();
+  const { user } = useAuth();
+
   const [event, setEvent] = useState(null);
-
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  useEffect(() => {
-  if (!event || !user) return;
-
-  if (!event.participants.includes(user.email)) {
-    alert("You are not registered for this event.");
-    window.location.href = "/dashboard";
-  }
-}, [event]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchEvent = async () => {
-      const res = await getSingleEventAPI(id);
-      if (res.status === 200) {
-        setEvent(res.data);
+    let cancelled = false;
+
+    const fetchTicket = async () => {
+      try {
+        // The server only returns the event if this user is registered for it.
+        const res = await getMyTicketAPI(id);
+        if (!cancelled) setEvent(res.data);
+      } catch (err) {
+        if (!cancelled) setError(getErrorMessage(err, "Unable to load ticket"));
       }
     };
 
-    fetchEvent();
+    fetchTicket();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  if (error) {
+    return (
+      <div className="py-20 text-center space-y-4">
+        <p className="text-red-500">{error}</p>
+        <Link
+          to="/dashboard"
+          className="inline-block px-6 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark transition"
+        >
+          Back to dashboard
+        </Link>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -38,7 +54,7 @@ export default function TicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg dark:bg-bg-dark flex items-center justify-center p-10">
+    <div className="min-h-screen bg-bg dark:bg-bg-dark flex items-center justify-center px-4 py-10 sm:p-10">
       <TicketCard event={event} user={user} />
     </div>
   );

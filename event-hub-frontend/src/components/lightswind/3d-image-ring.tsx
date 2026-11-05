@@ -7,8 +7,8 @@ import {
   useMotionValue,
   animate,
   easeOut,
-} from "framer-motion";
-import { cn } from "../../lib/utils";
+} from "motion/react";
+import { cx } from "../../lib/cx";
 
 export interface ThreeDImageRingProps {
   images: string[];
@@ -133,7 +133,7 @@ export default function ThreeDImageRing({
 
   return (
     <div
-      className={cn(
+      className={cx(
         "relative w-full h-full overflow-hidden select-none",
         containerClassName
       )}
@@ -157,7 +157,7 @@ export default function ThreeDImageRing({
       >
         <motion.div
           ref={ringRef}
-          className={cn("absolute w-full h-full", ringClassName)}
+          className={cx("absolute w-full h-full", ringClassName)}
           style={{
             transformStyle: "preserve-3d",
             rotateY: rotationY,
@@ -169,7 +169,7 @@ export default function ThreeDImageRing({
               images.map((src, index) => (
                 <motion.div
                   key={index}
-                  className={cn("absolute w-full h-full", imageClassName)}
+                  className={cx("absolute w-full h-full", imageClassName)}
                   style={{
                     transformStyle: "preserve-3d",
                     rotateY: -index * angle,

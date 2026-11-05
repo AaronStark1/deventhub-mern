@@ -4,7 +4,6 @@ import ShinyText from "../components/animations/ShinyText";
 import Balatro from "../components/backgrounds/Balatro";
 import { useNavigate } from "react-router-dom";
 import FeaturedEventsRing from "../components/FeaturedEventsRing";
-import ScrollStack, { ScrollStackItem } from "../components/animations/ScrollStack";
 import EventScrollStack from "../components/EventScrollStack";
 import GlobeSection from "../components/GlobeSection";
 
@@ -14,8 +13,8 @@ export default function LandingPage() {
   return (
     <div className="w-full">
 
-      {/* HERO SECTION */}
-      <section className="relative h-screen overflow-hidden">
+      {/* HERO SECTION — h-svh: stable height on phones while the URL bar shows/hides */}
+      <section className="relative h-svh overflow-hidden">
 
         {/* BACKGROUND */}
         <div className="absolute inset-0">
@@ -34,7 +33,7 @@ export default function LandingPage() {
 
         {/* CONTENT */}
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
-          <h1 className="text-6xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6">
             <ShinyText
 
               text="Welcome to DEVentHub"
@@ -49,7 +48,7 @@ export default function LandingPage() {
               disabled={false}
             />
 
-            <span className="text-primary block text-3xl">
+            <span className="text-primary block text-xl sm:text-2xl md:text-3xl">
               <div style={{ marginTop: '2rem' }}>
                 <DecryptedText
                   text="Discover events that connect, challenge, and inspire"
@@ -62,7 +61,7 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="mt-6 mb-10 flex items-center gap-3 text-3xl font-semibold text-white/80">
+          <p className="mt-6 mb-10 flex flex-wrap items-center justify-center gap-3 text-xl sm:text-2xl md:text-3xl font-semibold text-white/80">
             <span>Host and attend</span>
 
             <RotatingText
@@ -91,7 +90,7 @@ export default function LandingPage() {
 
 
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <button
               onClick={() => navigate("/events")}
               className="
@@ -118,7 +117,7 @@ export default function LandingPage() {
       </section>
       {/* FEATURED EVENTS SLIDER */}
       <section className="relative py-24 bg-bg dark:bg-bg-dark">
-        <h2 className="text-center text-4xl font-bold mb-12">
+        <h2 className="font-display text-center text-3xl md:text-4xl font-bold tracking-[-0.03em] leading-[1.1] mb-12">
           Featured Events
         </h2>
 
@@ -128,15 +127,18 @@ export default function LandingPage() {
       {/* 🌍 GLOBE SECTION */}
       <GlobeSection />
 
-      <section className="relative py-20 bg-bg dark:bg-bg-dark">
-        <h2 className="text-center text-4xl font-bold mb-10">
-          What We Host
-        </h2>
+      {/* WHAT WE HOST — equal fluid padding above the heading and below the
+          released stack; overflow-x-clip (not hidden) so card shadows show */}
+      <section className="relative isolate overflow-x-clip bg-bg dark:bg-bg-dark py-[clamp(4rem,10vh,7rem)]">
+        <div aria-hidden="true" className="formats-backdrop" />
 
-        <div className="relative h-[280vh] overflow-hidden">
-          <EventScrollStack useWindowScroll />
+        <div className="shell">
+          <h2 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.03em] leading-[1.1] mb-[clamp(2rem,5vh,3.5rem)]">
+            What We Host
+          </h2>
         </div>
 
+        <EventScrollStack useWindowScroll />
       </section>
 
 

@@ -1,6 +1,325 @@
-@import "flowbite";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Page background as a CSS variable, for components that need it in plain
+   CSS (LogoLoop's fade edges). Mirrors `bg` / `bg-dark` in tailwind.config. */
+:root {
+  --bg: #e6f0ee;
 
+  /* The one easing curve for interactive states (`ease-soft` in Tailwind). */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Ambient backdrop behind the "What We Host" stack. */
+  --formats-tint: #f2f7f5;
+  --formats-grid: rgba(22, 56, 64, 0.035);
+}
+.dark {
+  --bg: #10242b;
+  --formats-tint: rgba(36, 80, 85, 0.45);
+  --formats-grid: rgba(207, 231, 226, 0.035);
+}
+
+@layer components {
+  /* Shared page container: the format stack and the footer both use it, so
+     their left and right edges line up exactly. */
+  .shell {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 4vw, 3rem);
+  }
+
+  /* ---------------------------------------------------------------------
+     "What We Host" backdrop: soft radial tint plus a faint architectural
+     grid that fades out toward the section edges.
+     --------------------------------------------------------------------- */
+  .formats-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 70% 640px at 50% 0%,
+      var(--formats-tint),
+      transparent 72%
+    );
+  }
+  .formats-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--formats-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--formats-grid) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 30%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 30%, transparent 100%);
+  }
+
+  /* ---------------------------------------------------------------------
+     Format card (Meetups / Workshops / Hackathons / Conferences).
+     Layout lives in JSX; this is the surface. `data-tone` picks the ink:
+       deep   — spec palette for the darkest card (Conferences)
+       mid    — light ink, firmer body copy for mid-tone gradients
+       bright — dark ink, because white on #9ee3b5 is unreadable
+     --------------------------------------------------------------------- */
+  .format-card {
+    --card-ink: #ffffff;
+    --card-body: rgba(234, 242, 239, 0.78);
+    --card-signal: #7cc2cc;
+    --card-spot: rgba(124, 194, 204, 0.08);
+    --card-edge: rgba(255, 255, 255, 0.34);
+    --bezel-bg: rgba(255, 255, 255, 0.03);
+    --bezel-line: rgba(255, 255, 255, 0.08);
+    --pill-bg: rgba(255, 255, 255, 0.04);
+    --pill-bg-hover: rgba(255, 255, 255, 0.09);
+    --pill-line: rgba(255, 255, 255, 0.14);
+    --pill-line-hover: rgba(255, 255, 255, 0.3);
+
+    isolation: isolate;
+    overflow: hidden;
+    color: var(--card-ink);
+  }
+  .format-card[data-tone="mid"] {
+    --card-body: rgba(255, 255, 255, 0.9);
+    --card-signal: rgba(232, 248, 246, 0.85);
+    --card-spot: rgba(255, 255, 255, 0.1);
+  }
+  .format-card[data-tone="bright"] {
+    --card-ink: #10242b;
+    --card-body: rgba(16, 36, 43, 0.84);
+    --card-signal: #163840;
+    --card-spot: rgba(255, 255, 255, 0.22);
+    --card-edge: rgba(255, 255, 255, 0.6);
+    --bezel-bg: rgba(255, 255, 255, 0.12);
+    --bezel-line: rgba(22, 56, 64, 0.12);
+    --pill-bg: rgba(255, 255, 255, 0.18);
+    --pill-bg-hover: rgba(255, 255, 255, 0.32);
+    --pill-line: rgba(22, 56, 64, 0.18);
+    --pill-line-hover: rgba(22, 56, 64, 0.34);
+  }
+
+  /* Surface layers, painted in DOM order beneath the content. */
+  .format-card__noise,
+  .format-card__spotlight,
+  .format-card__edge {
+    position: absolute;
+    pointer-events: none;
+  }
+  .format-card__noise {
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+  .format-card__spotlight {
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      var(--card-spot),
+      transparent 40%
+    );
+    transition: opacity 500ms var(--ease-soft);
+  }
+  /* Specular highlight along the top border; brightens on hover. */
+  .format-card__edge {
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--card-edge), transparent);
+    opacity: 0.45;
+    transition: opacity 700ms var(--ease-soft);
+  }
+
+  .format-card__eyebrow {
+    margin-bottom: 1.125rem;
+    font-family: theme("fontFamily.mono");
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--card-signal);
+  }
+  .format-card__title {
+    font-family: theme("fontFamily.display");
+    font-weight: 700;
+    font-size: clamp(2rem, 1.1rem + 2.8vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--card-ink);
+  }
+  .format-card__body {
+    margin-top: 1rem;
+    max-width: 44ch;
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    line-height: 1.65;
+    text-wrap: pretty;
+    color: var(--card-body);
+  }
+  .format-card__pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3125rem 0.8125rem;
+    border-radius: 9999px;
+    border: 1px solid var(--pill-line);
+    background: var(--pill-bg);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--card-body);
+    transition:
+      color 300ms var(--ease-soft),
+      background-color 300ms var(--ease-soft),
+      border-color 300ms var(--ease-soft),
+      transform 300ms var(--ease-soft);
+  }
+
+  /* Glass bezel around the photo. Inner radius = outer radius - padding. */
+  .format-card__bezel {
+    padding: 8px;
+    border-radius: 20px;
+    border: 1px solid var(--bezel-line);
+    background: var(--bezel-bg);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 -12px 24px -14px rgba(9, 21, 27, 0.45);
+  }
+  .format-card__frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border-radius: 12px;
+    background: rgba(9, 21, 27, 0.25);
+  }
+  .format-card__frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(to top right, rgba(255, 255, 255, 0.07), transparent 45%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+      inset 0 14px 32px -18px rgba(9, 21, 27, 0.6);
+  }
+  .format-card__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 700ms var(--ease-soft);
+  }
+
+  @media (hover: hover) {
+    .format-card:hover .format-card__spotlight,
+    .format-card:hover .format-card__edge {
+      opacity: 1;
+    }
+    .format-card:hover .format-card__img {
+      transform: scale(1.03);
+    }
+    .format-card__pill:hover {
+      color: var(--card-ink);
+      background: var(--pill-bg-hover);
+      border-color: var(--pill-line-hover);
+      transform: translateY(-1px);
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Footer
+     --------------------------------------------------------------------- */
+  .logo-tile {
+    position: relative;
+    display: block;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 1px rgba(22, 56, 64, 0.15),
+      0 1px 2px rgba(9, 21, 27, 0.08),
+      0 6px 14px -6px rgba(9, 21, 27, 0.22);
+    transition: transform 300ms var(--ease-soft);
+  }
+  .dark .logo-tile {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 6px 14px -6px rgba(0, 0, 0, 0.4);
+  }
+  /* Inner specular line; sits above the image, so it can't be a box-shadow
+     on the link itself. */
+  .logo-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  /* 1px underline that draws in from the left, with a 1px lift. */
+  .link-underline {
+    position: relative;
+    display: inline-block;
+    transition:
+      color 300ms var(--ease-soft),
+      transform 300ms var(--ease-soft);
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 450ms var(--ease-soft);
+  }
+  .link-underline:focus-visible::after,
+  .link-underline[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+  .link-underline:focus-visible {
+    transform: translateY(-1px);
+  }
+  @media (hover: hover) {
+    .link-underline:hover {
+      transform: translateY(-1px);
+    }
+    .link-underline:hover::after {
+      transform: scaleX(1);
+    }
+    .logo-tile:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  /* Reduced motion: no transforms, no spotlight. State changes still show
+     (underline, colour), they just don't move. */
+  @media (prefers-reduced-motion: reduce) {
+    .format-card__spotlight {
+      display: none;
+    }
+    .format-card__img,
+    .format-card__pill,
+    .link-underline,
+    .link-underline::after,
+    .logo-tile {
+      transition: none;
+    }
+    .format-card .format-card__img,
+    .format-card .format-card__pill,
+    .link-underline,
+    .logo-tile {
+      transform: none !important;
+    }
+  }
+}

@@ -4,6 +4,7 @@ import {
   getSingleEventAPI,
   confirmRegistrationAPI,
 } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
 
 export default function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -21,34 +22,22 @@ export default function PaymentSuccess() {
 
     const finalize = async () => {
       try {
-        const token = localStorage.getItem("token");
+        // Demo only: registration is confirmed on the client's say-so.
+        // The endpoint is idempotent, so reloading this page is safe.
+        await confirmRegistrationAPI(eventId);
 
-        // ✅ STEP 1: Confirm Registration
-        const confirmRes = await confirmRegistrationAPI(
-          eventId,
-          token
-        );
-
-        if (confirmRes.status !== 200) {
-          navigate("/");
-          return;
-        }
-
-        // ✅ STEP 2: Fetch Event For Display
         const eventRes = await getSingleEventAPI(eventId);
-        if (eventRes.status === 200) {
-          setEvent(eventRes.data);
-        }
+        setEvent(eventRes.data);
       } catch (err) {
-        console.error(err);
-        navigate("/");
+        alert(getErrorMessage(err, "Could not confirm your registration"));
+        navigate(`/events/${eventId}`);
       } finally {
         setLoading(false);
       }
     };
 
     finalize();
-  }, [eventId]);
+  }, [eventId, navigate]);
 
   if (loading) {
     return (
@@ -76,7 +65,7 @@ export default function PaymentSuccess() {
           {event.isOnline ? "Online" : event.location}
         </p>
 
-        <div className="pt-6 flex gap-4">
+        <div className="pt-6 flex flex-col sm:flex-row gap-4">
           <button
             onClick={() => navigate("/dashboard")}
             className="flex-1 py-3 rounded-lg bg-primary text-white font-semibold"

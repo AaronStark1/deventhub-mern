@@ -1,14 +1,30 @@
-import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { updateEventAPI } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
 
 export default function EditEvent() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [capacity, setCapacity] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleUpdate = async () => {
-    await updateEventAPI(id, { capacity });
-    alert("Event updated");
+    if (!capacity || Number(capacity) < 1) {
+      alert("Enter a valid capacity");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await updateEventAPI(id, { capacity: Number(capacity) });
+      alert("Event updated");
+      navigate("/host/dashboard");
+    } catch (err) {
+      alert(getErrorMessage(err, "Update failed"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -19,6 +35,7 @@ export default function EditEvent() {
 
       <input
         type="number"
+        min="1"
         placeholder="Capacity"
         value={capacity}
         onChange={(e) => setCapacity(e.target.value)}
@@ -27,9 +44,10 @@ export default function EditEvent() {
 
       <button
         onClick={handleUpdate}
-        className="w-full py-3 bg-primary text-white rounded-lg"
+        disabled={saving}
+        className="w-full py-3 bg-primary text-white rounded-lg disabled:opacity-60"
       >
-        Save Changes
+        {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
   );

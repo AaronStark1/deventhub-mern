@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import createGlobe from "cobe";
-import { cn } from "../../lib/utils"; // Assuming cn utility is available for Tailwind classes
+import { watchVisibility } from "../../lib/visibility";
+import { cx } from "../../lib/cx";
 
 // Utility function to convert a hex color string to a normalized RGB array
 // Handles #RGB and #RRGGBB formats.
@@ -91,16 +92,25 @@ const Globe: React.FC<GlobeProps> = ({
         ? hexToRgbNormalized(glowColor)
         : glowColor || [0.2745, 0.5765, 0.898]; // Default if not provided or invalid hex
 
-    const initGlobe = () => {
-      // Destroy existing globe instance if it exists to prevent multiple instances
+    let visible = false;
+    let lastSize = 0;
+
+    const destroyGlobe = () => {
       if (globeRef.current) {
         globeRef.current.destroy();
         globeRef.current = null;
       }
+    };
+
+    const initGlobe = () => {
+      // Destroy existing globe instance if it exists to prevent multiple instances
+      destroyGlobe();
 
       const rect = canvas.getBoundingClientRect();
       const size = Math.min(rect.width, rect.height);
-      const devicePixelRatio = window.devicePixelRatio || 1;
+      if (size <= 0) return;
+      lastSize = Math.round(size);
+      const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       const internalWidth = size * devicePixelRatio;
       const internalHeight = size * devicePixelRatio;
 
@@ -181,7 +191,24 @@ const Globe: React.FC<GlobeProps> = ({
     };
     // --- End Mouse Interaction Handlers ---
 
-    initGlobe();
+    // cobe runs its own render loop, so only keep a globe alive while it's
+    // on screen. Rotation lives in phiRef and carries over between instances.
+    const unwatch = watchVisibility(canvas, (isVisible) => {
+      visible = isVisible;
+      if (visible) initGlobe();
+      else destroyGlobe();
+    });
+
+    // Rebuild only when the rendered size really changes. Mobile browsers
+    // fire `resize` while scrolling (URL bar), which used to recreate the
+    // globe mid-scroll.
+    const resizeObserver = new ResizeObserver(() => {
+      const rect = canvas.getBoundingClientRect();
+      const size = Math.round(Math.min(rect.width, rect.height));
+      if (size === lastSize) return;
+      if (visible) initGlobe();
+    });
+    resizeObserver.observe(canvas);
 
     // Attach event listeners for mouse interaction
     canvas.addEventListener("mousedown", onMouseDown);
@@ -189,26 +216,15 @@ const Globe: React.FC<GlobeProps> = ({
     canvas.addEventListener("mouseup", onMouseUp);
     canvas.addEventListener("mouseleave", onMouseLeave); // Important for when mouse leaves canvas during a drag
 
-    const handleResize = () => {
-      initGlobe();
-    };
-
-    window.addEventListener("resize", handleResize);
-
     // Cleanup function: destroy the globe instance and remove event listeners when component unmounts
     return () => {
-      window.removeEventListener("resize", handleResize);
-      // Remove mouse event listeners on cleanup
-      if (canvas) {
-        canvas.removeEventListener("mousedown", onMouseDown);
-        canvas.removeEventListener("mousemove", onMouseMove);
-        canvas.removeEventListener("mouseup", onMouseUp);
-        canvas.removeEventListener("mouseleave", onMouseLeave);
-      }
-      if (globeRef.current) {
-        globeRef.current.destroy();
-        globeRef.current = null;
-      }
+      unwatch();
+      resizeObserver.disconnect();
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", onMouseUp);
+      canvas.removeEventListener("mouseleave", onMouseLeave);
+      destroyGlobe();
     };
   }, [
     theta,
@@ -222,31 +238,23 @@ const Globe: React.FC<GlobeProps> = ({
     glowColor,
   ]);
 
+  // The canvas fills whatever square the caller gives it (e.g. `w-full
+  // max-w-[30rem] aspect-square`), so it scales down on phones instead of
+  // being clipped.
   return (
     <div
-      className={cn(
-        "flex items-center justify-center z-[10] mx-auto",
+      className={cx(
+        "flex items-center justify-center z-[10] mx-auto overflow-hidden",
         className
       )}
-      style={{
-        width: "auto",
-        height: "auto", // Container takes full viewport height
-        display: "flex", // Ensure flexbox properties are active for centering
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden", // Prevent scrollbars if content overflows
-      }}
     >
       <canvas
         ref={canvasRef}
         style={{
-          width: "40rem", // Canvas takes full width of its parent (which is constrained)
-          height: "40rem", // Canvas takes full height of its parent (which is constrained)
-          maxWidth: "auto", // Limit max width to viewport height to ensure square aspect in landscape
-          maxHeight: "auto", // Limit max height to viewport width to ensure square aspect in portrait
-          aspectRatio: "1", // Force a 1:1 aspect ratio for the canvas element
-          display: "block", // Ensure canvas behaves as a block element
-          cursor: "grab", // Default cursor
+          width: "100%",
+          height: "100%",
+          display: "block",
+          cursor: "grab",
         }}
       />
     </div>

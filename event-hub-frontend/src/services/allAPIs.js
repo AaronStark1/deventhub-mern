@@ -1,113 +1,29 @@
-import { serverURL } from "./serverURL";
-import commonAPI from "./commonAPI";
+import api from "./api";
 
-// auth APIs
-export const registerUserAPI = async (reqBody) => {
-  return await commonAPI(
-    "POST",
-    `${serverURL}/api/register`, 
-    reqBody, 
-    {}
-  );
-};
+// Every call returns the axios response on 2xx and throws on anything else.
+// The token is attached automatically by the interceptor in ./api.
 
-export const loginUserAPI = async (reqBody) => {
-  return await commonAPI(
-    "POST", 
-    `${serverURL}/api/login`, 
-    reqBody, 
-    {}
-  );
-};
+// AUTH
+export const registerUserAPI = (body) => api.post("/api/register", body);
+export const loginUserAPI = (body) => api.post("/api/login", body);
+export const googleLoginAPI = (body) => api.post("/api/google-login", body);
 
-export const googleLoginAPI = async (reqBody) => {
-  return await commonAPI(
-    "POST",
-    `${serverURL}/api/google-login`,
-    reqBody,
-    {}
-  );
-};
+// EVENTS — public
+export const getAllEventsAPI = (params) => api.get("/api/getAllEvents", { params });
+export const getSingleEventAPI = (id) => api.get(`/api/getSingleEvent/${id}`);
 
-// EVENTS APIs
-export const addEventAPI = async (reqBody, token) => {
-  return await commonAPI(
-    "POST",
-    `${serverURL}/api/addEvent`,
-    reqBody,
-    {
-      Authorization: `Bearer ${token}`,
-    }
-  );
-};
+// EVENTS — host
+export const addEventAPI = (body) => api.post("/api/addEvent", body);
+export const updateEventAPI = (id, body) => api.put(`/api/updateEvent/${id}`, body);
+export const deleteEventAPI = (id) => api.delete(`/api/deleteEvent/${id}`);
+export const getHostEventsAPI = () => api.get("/api/host/events");
 
+// REGISTRATIONS — user
+export const confirmRegistrationAPI = (id) =>
+  api.post(`/api/events/${id}/confirm-registration`);
+export const getMyRegistrationsAPI = () => api.get("/api/user/registrations");
+export const getMyTicketAPI = (id) => api.get(`/api/events/${id}/ticket`);
 
-export const getAllEventsAPI = async (query = "") => {
-  return await commonAPI(
-    'GET',
-    `${serverURL}/api/getAllEvents${query}`,
-    {},
-    {}
-  );
-};
-
-export const getSingleEventAPI = async (id) => {
-  return await commonAPI(
-    'GET',
-    `${serverURL}/api/getSingleEvent/${id}`,
-    {},
-    {}
-  );
-};
-
-export const updateEventAPI = async (id, reqBody) => {
-  return await commonAPI(
-    'PUT',
-    `${serverURL}/api/updateEvent/${id}`,
-    reqBody,
-    {}
-  );
-};
-
-export const deleteEventAPI = async (id) => {
-  return await commonAPI(
-    'DELETE',
-    `${serverURL}/api/deleteEvent/${id}`,
-    {},
-    {}
-  );
-};
-
-export const confirmRegistrationAPI = async (id, token) => {
-  return await commonAPI(
-    "POST",
-    `${serverURL}/api/events/${id}/confirm-registration`,
-    {},
-    {
-      Authorization: `Bearer ${token}`,
-    }
-  );
-};
-
-export const getHostEventsAPI = async (token) => {
-  return await commonAPI(
-    "GET",
-    `${serverURL}/api/host/events`,
-    {},
-    {
-      Authorization: `Bearer ${token}`,
-    }
-  );
-};
-
-// payment 
-export const createCheckoutSessionAPI = async (eventId, token) => {
-  return await commonAPI(
-    "POST",
-    `${serverURL}/api/create-checkout-session`,
-    { eventId },
-    {
-      Authorization: `Bearer ${token}`,
-    }
-  );
-};
+// PAYMENT (demo only)
+export const createCheckoutSessionAPI = (eventId) =>
+  api.post("/api/create-checkout-session", { eventId });

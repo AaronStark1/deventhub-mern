@@ -1,49 +1,42 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllEventsAPI } from "../../services/allAPIs";
+import { getMyRegistrationsAPI } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  const user = JSON.parse(localStorage.getItem("user"));
-  const userEmail = user?.email;
+  const { user } = useAuth();
 
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [pastEvents, setPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchDashboardData = async () => {
-      const res = await getAllEventsAPI();
-
-      if (res.status === 200) {
-        const allEvents = res.data;
-
-        // events user is registered for
-        const registeredEvents = allEvents.filter((event) =>
-          event.participants.includes(userEmail)
-        );
+      try {
+        // Only this user's registrations come back — nobody else's data.
+        const res = await getMyRegistrationsAPI();
+        if (cancelled) return;
 
         const now = new Date();
-
-        setUpcomingEvents(
-          registeredEvents.filter(
-            (event) => new Date(event.date) >= now
-          )
-        );
-
-        setPastEvents(
-          registeredEvents.filter(
-            (event) => new Date(event.date) < now
-          )
-        );
+        setUpcomingEvents(res.data.filter((event) => new Date(event.date) >= now));
+        setPastEvents(res.data.filter((event) => new Date(event.date) < now));
+      } catch (err) {
+        if (!cancelled) setError(getErrorMessage(err, "Unable to load your dashboard"));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchDashboardData();
-  }, [userEmail]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -55,8 +48,16 @@ export default function Dashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-bg dark:bg-bg-dark px-6 py-16 transition-colors">
+    <div className="min-h-screen bg-bg dark:bg-bg-dark px-4 sm:px-6 py-16 transition-colors">
       <div className="max-w-6xl mx-auto space-y-12">
 
         {/* PROFILE HEADER */}
@@ -82,7 +83,7 @@ export default function Dashboard() {
           {upcomingEvents.length === 0 ? (
             <Empty text="No upcoming events." />
           ) : (
-            <EventGrid events={upcomingEvents} navigate={navigate} user={user}/>
+            <EventGrid events={upcomingEvents} navigate={navigate} />
           )}
         </Section>
 
@@ -113,7 +114,7 @@ export default function Dashboard() {
         </Section>
 
         {/* QUICK ACTION */}
-        <section className="bg-surface dark:bg-surface-dark rounded-2xl p-8 shadow flex justify-between items-center">
+        <section className="bg-surface dark:bg-surface-dark rounded-2xl p-8 shadow flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
           <p className="text-lg font-semibold">
             Ready to explore more events?
           </p>
@@ -162,7 +163,7 @@ function EventGrid({ events, navigate }) {
       {events.map((event) => (
         <div
           key={event._id}
-          className="bg-surface dark:bg-surface-dark rounded-xl p-6 shadow flex justify-between items-center"
+          className="bg-surface dark:bg-surface-dark rounded-xl p-6 shadow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"
         >
           <div>
             <h3 className="text-lg font-semibold">

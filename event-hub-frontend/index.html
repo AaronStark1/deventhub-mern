@@ -4,9 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EventHub</title>
+    <meta
+      name="description"
+      content="DEVentHub — discover, host and attend developer meetups, hackathons, workshops and conferences."
+    />
+    <title>DEVentHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;500&family=Syne:wght@600;700&display=swap"
+    />
+    <script>
+      // Apply the saved theme before first paint so dark-mode users don't see
+      // a flash of the light theme. Uses the same storage key as ThemeProvider.
+      try {
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.classList.add("dark");
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body>
+  <!-- font-sans here, not just on <html>: the lightswind plugin's base styles
+       reset body to Tailwind's default stack -->
+  <body class="bg-bg dark:bg-bg-dark font-sans">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

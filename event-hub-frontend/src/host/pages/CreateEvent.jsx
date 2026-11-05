@@ -1,15 +1,25 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Card,
-  Label,
-  TextInput,
-  Textarea,
-  Select,
-  Checkbox,
-  Button,
-} from "flowbite-react";
 import { addEventAPI } from "../../services/allAPIs";
+import { getErrorMessage } from "../../services/api";
+
+const CATEGORIES = ["Meetup", "Hackathon", "Workshop", "Conference"];
+
+// Same input styling as the rest of the app (filters, auth forms).
+const fieldClass =
+  "w-full px-4 py-3 rounded-lg bg-bg dark:bg-bg-dark border border-black/10 dark:border-white/10 outline-none focus:border-primary transition-colors";
+const labelClass = "block text-sm font-semibold mb-2";
+
+function Field({ label, htmlFor, children }) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className={labelClass}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -25,17 +35,24 @@ export default function CreateEvent() {
     isOnline: false,
     category: "",
     priceType: "free",
-    price: 0,
+    price: "",
     capacity: "",
   });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setEvent({
-      ...event,
+    setEvent((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   };
+
+  const setPriceType = (priceType) =>
+    setEvent((prev) => ({
+      ...prev,
+      priceType,
+      price: priceType === "free" ? "" : prev.price,
+    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,31 +62,24 @@ export default function CreateEvent() {
       return;
     }
 
-    if (event.priceType === "paid" && (!event.price || event.price <= 0)) {
+    const price = Number(event.price) || 0;
+    if (event.priceType === "paid" && price <= 0) {
       alert("Paid events must have a valid price");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Please login as host");
-      navigate("/login");
       return;
     }
 
     try {
       setLoading(true);
-
-      const res = await addEventAPI(event, token);
-
-      if (res.status === 200) {
-        alert("Event created successfully");
-        navigate("/host/dashboard");
-      } else {
-        alert(res.response?.data || "Event creation failed");
-      }
+      await addEventAPI({
+        ...event,
+        price,
+        capacity: event.capacity ? Number(event.capacity) : undefined,
+        location: event.isOnline ? "" : event.location,
+      });
+      alert("Event created successfully");
+      navigate("/host/dashboard");
     } catch (err) {
-      alert(err.response?.data || "Server error");
+      alert(getErrorMessage(err, "Event creation failed"));
     } finally {
       setLoading(false);
     }
@@ -80,173 +90,186 @@ export default function CreateEvent() {
       <div className="w-full max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold">Create Event</h1>
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted dark:text-muted-dark">
             Enter the details of your event
           </p>
         </div>
 
-        <Card className="bg-surface dark:bg-surface-dark">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-surface dark:bg-surface-dark rounded-2xl shadow p-6 sm:p-8 space-y-6"
+        >
+          <Field label="Event Title" htmlFor="title">
+            <input
+              id="title"
+              name="title"
+              placeholder="Tech Conference 2025"
+              value={event.title}
+              onChange={handleChange}
+              className={fieldClass}
+              required
+            />
+          </Field>
 
-            <div>
-              <Label value="Event Title" />
-              <TextInput
-                name="title"
-                placeholder="Tech Conference 2025"
-                value={event.title}
+          <Field label="Poster Image URL" htmlFor="poster">
+            <input
+              id="poster"
+              name="poster"
+              type="url"
+              placeholder="https://example.com/poster.jpg"
+              value={event.poster}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </Field>
+
+          <Field label="Description" htmlFor="description">
+            <textarea
+              id="description"
+              name="description"
+              placeholder="Brief description of the event"
+              value={event.description}
+              onChange={handleChange}
+              rows={4}
+              className={fieldClass}
+              required
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Date" htmlFor="date">
+              <input
+                id="date"
+                type="date"
+                name="date"
+                value={event.date}
                 onChange={handleChange}
+                className={fieldClass}
                 required
               />
-            </div>
+            </Field>
 
-            <div>
-              <Label value="Poster Image URL" />
-              <TextInput
-                name="poster"
-                placeholder="https://example.com/poster.jpg"
-                value={event.poster}
+            <Field label="Time" htmlFor="time">
+              <input
+                id="time"
+                type="time"
+                name="time"
+                value={event.time}
                 onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <Label value="Description" />
-              <Textarea
-                name="description"
-                placeholder="Brief description of the event"
-                value={event.description}
-                onChange={handleChange}
-                rows={4}
+                className={fieldClass}
                 required
               />
-            </div>
+            </Field>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label value="Date" />
-                <TextInput
-                  type="date"
-                  name="date"
-                  value={event.date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label value="Time" />
-                <TextInput
-                  type="time"
-                  name="time"
-                  value={event.time}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label value="Event Mode" />
-              <div className="flex items-center gap-3 mb-2">
-                <Checkbox
-                  name="isOnline"
-                  checked={event.isOnline}
-                  onChange={handleChange}
-                />
-                <span className="text-sm">Online Event</span>
-              </div>
-
-              {!event.isOnline && (
-                <TextInput
-                  name="location"
-                  placeholder="Event Location"
-                  value={event.location}
-                  onChange={handleChange}
-                  required
-                />
-              )}
-            </div>
-
-            <div>
-              <Label value="Category" />
-              <Select
-                name="category"
-                value={event.category}
+          <div>
+            <span className={labelClass}>Event Mode</span>
+            <label className="flex items-center gap-3 mb-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="isOnline"
+                checked={event.isOnline}
                 onChange={handleChange}
-                required
-              >
-                <option value="">Select category</option>
-                <option value="Meetup">Meetup</option>
-                <option value="Hackathon">Hackathon</option>
-                <option value="Workshop">Workshop</option>
-                <option value="Conference">Conference</option>
-              </Select>
-            </div>
+                className="w-4 h-4 accent-primary"
+              />
+              <span className="text-sm">Online Event</span>
+            </label>
 
-            <div>
-              <Label value="Pricing" />
-              <div className="flex gap-4 mt-2">
-                <Button
+            {!event.isOnline && (
+              <input
+                name="location"
+                placeholder="Event Location"
+                aria-label="Event Location"
+                value={event.location}
+                onChange={handleChange}
+                className={fieldClass}
+                required
+              />
+            )}
+          </div>
+
+          <Field label="Category" htmlFor="category">
+            <select
+              id="category"
+              name="category"
+              value={event.category}
+              onChange={handleChange}
+              className={fieldClass}
+              required
+            >
+              <option value="">Select category</option>
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div>
+            <span className={labelClass}>Pricing</span>
+            <div className="flex gap-3">
+              {["free", "paid"].map((type) => (
+                <button
+                  key={type}
                   type="button"
-                  color={event.priceType === "free" ? "success" : "gray"}
-                  onClick={() =>
-                    setEvent({ ...event, priceType: "free", price: 0 })
-                  }
+                  onClick={() => setPriceType(type)}
+                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition ${
+                    event.priceType === type
+                      ? "bg-primary text-white"
+                      : "border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
                 >
-                  Free
-                </Button>
-
-                <Button
-                  type="button"
-                  color={event.priceType === "paid" ? "success" : "gray"}
-                  onClick={() =>
-                    setEvent({ ...event, priceType: "paid" })
-                  }
-                >
-                  Paid
-                </Button>
-              </div>
-
-              {event.priceType === "paid" && (
-                <TextInput
-                  className="mt-3"
-                  type="number"
-                  name="price"
-                  placeholder="Ticket Price"
-                  min="1"
-                  value={event.price}
-                  onChange={handleChange}
-                  required
-                />
-              )}
+                  {type === "free" ? "Free" : "Paid"}
+                </button>
+              ))}
             </div>
 
-            <div>
-              <Label value="Total Seats" />
-              <TextInput
+            {event.priceType === "paid" && (
+              <input
+                className={`${fieldClass} mt-3`}
                 type="number"
-                name="capacity"
-                placeholder="260"
-                value={event.capacity}
-                onChange={handleChange}
+                name="price"
+                placeholder="Ticket price (₹)"
+                aria-label="Ticket price"
                 min="1"
+                value={event.price}
+                onChange={handleChange}
+                required
               />
-            </div>
+            )}
+          </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1" disabled={loading}>
-                {loading ? "Creating..." : "Create Event"}
-              </Button>
+          <Field label="Total Seats" htmlFor="capacity">
+            <input
+              id="capacity"
+              type="number"
+              name="capacity"
+              placeholder="Leave empty for unlimited"
+              min="1"
+              value={event.capacity}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </Field>
 
-              <Link to="/host/dashboard" className="flex-1">
-                <Button color="gray" className="w-full">
-                  Cancel
-                </Button>
-              </Link>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-dark transition disabled:opacity-60"
+            >
+              {loading ? "Creating..." : "Create Event"}
+            </button>
 
-          </form>
-        </Card>
+            <Link
+              to="/host/dashboard"
+              className="flex-1 py-3 rounded-lg border border-black/10 dark:border-white/10 text-center font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition"
+            >
+              Cancel
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );
